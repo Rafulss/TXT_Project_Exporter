@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10141c">
+  <meta name="description" content="A browser-based tool for exporting project files into clean, structured TXT documents.">
+  <title>TXT Project Exporter</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #0b0e14;
+      --surface: #131923;
+      --surface-raised: #192231;
+      --surface-input: #0e141e;
+      --text: #edf2f9;
+      --muted: #98a6b8;
+      --subtle: #718096;
+      --border: #293548;
+      --border-strong: #3a4b64;
+      --accent: #65a7ff;
+      --accent-strong: #347ee8;
+      --success: #3fb982;
+      --warning: #e6b65b;
+      --danger: #f07878;
+      --radius: 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 12% 0%, rgba(52, 126, 232, .13), transparent 34rem),
+        radial-gradient(ellipse at 100% 80%, rgba(81, 91, 190, .10), transparent 32rem),
+        var(--background);
+      color: var(--text);
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    .app {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 42px 0 56px;
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      margin: 0 0 9px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 38px);
+      font-weight: 720;
+      letter-spacing: -.045em;
+      line-height: 1.12;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .privacy-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+      margin-top: 7px;
+      padding: 9px 12px;
+      border: 1px solid rgba(63, 185, 130, .25);
+      border-radius: 999px;
+      background: rgba(63, 185, 130, .07);
+      color: #9bdcbd;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .privacy-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px rgba(63, 185, 130, .65);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 21px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.018), transparent 130px), var(--surface);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .18);
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 17px;
+    }
+
+    h2 {
+      margin: 0;
+      color: #e4edf9;
+      font-size: 15px;
+      font-weight: 680;
+      letter-spacing: -.01em;
+    }
+
+    .step {
+      color: var(--subtle);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    .drop-zone {
+      display: flex;
+      min-height: 250px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 22px;
+      border: 1px dashed #49658d;
+      border-radius: 14px;
+      background: linear-gradient(145deg, rgba(52, 126, 232, .11), rgba(52, 126, 232, .025));
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+      outline: none;
+    }
+
+    .drop-zone:hover, .drop-zone:focus-visible, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: linear-gradient(145deg, rgba(52, 126, 232, .18), rgba(52, 126, 232, .05));
+    }
+
+    .drop-zone.dragover { transform: translateY(-2px); }
+
+    .folder-icon {
+      display: grid;
+      width: 54px;
+      height: 54px;
+      place-items: center;
+      margin-bottom: 16px;
+      border: 1px solid rgba(101, 167, 255, .25);
+      border-radius: 16px;
+      background: rgba(101, 167, 255, .10);
+      color: #a8ceff;
+      font-size: 25px;
+    }
+
+    .drop-title {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      font-size: 18px;
+      font-weight: 680;
+      letter-spacing: -.02em;
+    }
+
+    .drop-description {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 10px 14px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: white;
+      font-size: 13px;
+      font-weight: 680;
+      cursor: pointer;
+      transition: filter .16s ease, transform .16s ease, border-color .16s ease;
+    }
+
+    button:hover:not(:disabled) { filter: brightness(1.09); transform: translateY(-1px); }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    button:disabled { opacity: .42; cursor: not-allowed; }
+
+    .button-primary { background: var(--accent-strong); }
+    .button-secondary { border-color: var(--border-strong); background: #202b3b; color: #dce7f6; }
+    .button-danger { border-color: rgba(240, 120, 120, .28); background: rgba(240, 120, 120, .09); color: #ffaaaa; }
+    .button-success { background: #21865c; }
+
+    .status-card {
+      margin-top: 18px;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-input);
+    }
+
+    .progress-track {
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 11px;
+      border-radius: 999px;
+      background: #263247;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #478eea, #69c5d8);
+      transition: width .18s ease;
+    }
+
+    .status-text {
+      margin: 0;
+      color: #b9c7d8;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    .settings { display: grid; gap: 17px; }
+    .field { display: grid; gap: 8px; min-width: 0; }
+
+    label, .field-label {
+      color: #dce6f4;
+      font-size: 12px;
+      font-weight: 660;
+    }
+
+    select, input[type="number"], input[type="text"], textarea {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      background: var(--surface-input);
+      color: var(--text);
+      font-size: 13px;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+
+    select, input[type="number"], input[type="text"] { min-height: 42px; padding: 9px 11px; }
+    textarea { min-height: 96px; padding: 11px; resize: vertical; line-height: 1.5; }
+    #excludedFolders { min-height: 125px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 0 3px rgba(52, 126, 232, .14);
+    }
+
+    input:disabled, textarea:disabled { opacity: .45; cursor: not-allowed; }
+
+    .field-hint {
+      margin: 0;
+      color: var(--subtle);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .inline-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(110px, .48fr);
+      gap: 12px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: fit-content;
+      cursor: pointer;
+    }
+
+    .toggle-row input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent-strong);
+      cursor: pointer;
+    }
+
+    .toggle-row span { color: #dce6f4; font-size: 12px; font-weight: 630; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 17px;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 12px 10px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: var(--surface-raised);
+    }
+
+    .stat-value {
+      overflow: hidden;
+      color: #f3f7fc;
+      font-size: 21px;
+      font-weight: 730;
+      letter-spacing: -.04em;
+      text-overflow: ellipsis;
+    }
+
+    .stat-label {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .notice {
+      display: none;
+      margin-top: 13px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    .notice.warning { border: 1px solid rgba(230, 182, 91, .28); background: rgba(230, 182, 91, .08); color: #f1d49a; }
+    .notice.error { border: 1px solid rgba(240, 120, 120, .28); background: rgba(240, 120, 120, .08); color: #ffb2b2; }
+
+    .export-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 19px; }
+    .export-actions button { min-height: 44px; }
+
+    .footer {
+      margin-top: 20px;
+      color: var(--subtle);
+      font-size: 11px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+      .header { align-items: flex-start; }
+      .privacy-note { margin-top: 2px; }
+    }
+
+    @media (max-width: 560px) {
+      .app { width: min(100% - 26px, 520px); padding-top: 28px; }
+      .header { flex-direction: column; gap: 13px; margin-bottom: 20px; }
+      .panel { padding: 16px; }
+      .drop-zone { min-height: 210px; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .export-actions { grid-template-columns: 1fr; }
+      .inline-fields { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div>
+        <p class="eyebrow">Developer utility</p>
+        <h1>TXT Project Exporter</h1>
+        <p class="subtitle">Create clean, structured TXT exports from project folders.</p>
+      </div>
+      <div class="privacy-note"><span class="privacy-dot" aria-hidden="true"></span>Processed locally in your browser</div>
+    </header>
+
+    <div class="layout">
+      <section class="panel" aria-labelledby="folderHeading">
+        <div class="panel-heading">
+          <h2 id="folderHeading">Project folder</h2>
+          <span class="step">01 / SOURCE</span>
+        </div>
+
+        <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="Choose or drop a project folder">
+          <div class="folder-icon" aria-hidden="true">▰</div>
+          <div id="dropTitle" class="drop-title">Drop a folder here</div>
+          <div class="drop-description">or choose a folder from your device</div>
+        </div>
+        <input id="folderInput" type="file" webkitdirectory directory multiple class="hidden" aria-label="Choose project folder">
+
+        <div class="button-row">
+          <button id="selectButton" class="button-primary" type="button">Choose folder</button>
+          <button id="clearButton" class="button-danger" type="button">Clear</button>
+        </div>
+
+        <div class="status-card" aria-live="polite">
+          <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+          <p id="statusText" class="status-text">Choose a project folder to begin.</p>
+        </div>
+        <div id="warningBox" class="notice warning" role="status"></div>
+        <div id="errorBox" class="notice error" role="alert"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="settingsHeading">
+        <div class="panel-heading">
+          <h2 id="settingsHeading">Export settings</h2>
+          <span class="step">02 / CONFIGURE</span>
+        </div>
+
+        <div class="settings">
+          <div class="inline-fields">
+            <div class="field">
+              <label for="exportMode">Output format</label>
+              <select id="exportMode">
+                <option value="single">One TXT file</option>
+                <option value="parts">Split into multiple TXT files</option>
+              </select>
+            </div>
+            <div id="partsField" class="field hidden">
+              <label for="partsCount">Number of files</label>
+              <input id="partsCount" type="number" min="1" max="200" value="5" inputmode="numeric">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="fileMode">Files to include</label>
+            <select id="fileMode">
+              <option value="all">All readable text files</option>
+              <option value="extensions">Selected extensions only</option>
+            </select>
+          </div>
+
+          <div id="extensionsField" class="field hidden">
+            <label for="extensionsInput">File extensions</label>
+            <input id="extensionsInput" type="text" value=".cs,.json,.csproj,.slnx,.gd,.tres,.ps1,.yml,.godot,.tscn" autocomplete="off" spellcheck="false">
+            <p class="field-hint">Separate extensions with commas. Example: .cs, .json, .md</p>
+          </div>
+
+          <div class="field">
+            <label class="toggle-row" for="ignoreFoldersEnabled">
+              <input id="ignoreFoldersEnabled" type="checkbox" checked>
+              <span>Ignore selected folders</span>
+            </label>
+            <textarea id="excludedFolders" spellcheck="false">.git
+.vs
+.idea
+.vscode
+bin
+obj
+node_modules
+packages
+dist
+build
+coverage
+vendor
+__pycache__
+.venv
+venv
+logs
+log
+temp
+tmp</textarea>
+            <p class="field-hint">One folder name per line. Matching folder names are ignored at any depth.</p>
+          </div>
+        </div>
+
+        <div class="stats" aria-live="polite">
+          <div class="stat"><div id="statScanned" class="stat-value">0</div><div class="stat-label">Scanned</div></div>
+          <div class="stat"><div id="statIncluded" class="stat-value">0</div><div class="stat-label">Included</div></div>
+          <div class="stat"><div id="statSkipped" class="stat-value">0</div><div class="stat-label">Skipped</div></div>
+          <div class="stat"><div id="statOutputs" class="stat-value">0</div><div class="stat-label">Output files</div></div>
+        </div>
+
+        <div class="export-actions">
+          <button id="downloadOneButton" class="button-success" type="button" disabled>Download single TXT</button>
+          <button id="exportButton" class="button-primary" type="button" disabled>Export TXT files</button>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">Binary files are skipped. Source files are never modified.</footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const $ = (id) => document.getElementById(id);
+    const SEPARATOR = "------------------------------------------------------------";
+
+    const BINARY_EXTENSIONS = new Set([
+      ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".icns", ".heic", ".tif", ".tiff",
+      ".pdf", ".zip", ".rar", ".7z", ".gz", ".tar", ".exe", ".dll", ".so", ".dylib", ".pdb", ".obj",
+      ".bin", ".dat", ".db", ".sqlite", ".sqlite3", ".mp3", ".wav", ".ogg", ".flac", ".mp4", ".avi",
+      ".mov", ".mkv", ".webm", ".woff", ".woff2", ".ttf", ".otf", ".eot", ".doc", ".docx", ".xls",
+      ".xlsx", ".ppt", ".pptx", ".psd", ".blend", ".fbx", ".glb", ".gltf", ".pak", ".unitypackage"
+    ]);
+
+    const elements = {
+      dropZone: $("dropZone"),
+      dropTitle: $("dropTitle"),
+      folderInput: $("folderInput"),
+      selectButton: $("selectButton"),
+      clearButton: $("clearButton"),
+      exportMode: $("exportMode"),
+      partsField: $("partsField"),
+      partsCount: $("partsCount"),
+      fileMode: $("fileMode"),
+      extensionsField: $("extensionsField"),
+      extensionsInput: $("extensionsInput"),
+      ignoreFoldersEnabled: $("ignoreFoldersEnabled"),
+      excludedFolders: $("excludedFolders"),
+      downloadOneButton: $("downloadOneButton"),
+      exportButton: $("exportButton"),
+      progressBar: $("progressBar"),
+      statusText: $("statusText"),
+      warningBox: $("warningBox"),
+      errorBox: $("errorBox"),
+      statScanned: $("statScanned"),
+      statIncluded: $("statIncluded"),
+      statSkipped: $("statSkipped"),
+      statOutputs: $("statOutputs")
+    };
+
+    let rootFolderName = "project_export";
+    // Keep the original File objects so settings can be reapplied without selecting the folder again.
+    let sourceFiles = [];
+    let preparedFiles = [];
+    let traversalErrors = [];
+    let refreshVersion = 0;
+    let refreshTimer = null;
+    let isExporting = false;
+
+    function normalizePath(path) {
+      return String(path || "").replaceAll("\\", "/").replace(/^\/+/, "");
+    }
+
+    function sanitizeFileName(name) {
+      const value = String(name || "project_export").replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+      return value || "project_export";
+    }
+
+    function getRootName(path) {
+      const parts = normalizePath(path).split("/").filter(Boolean);
+      return parts.length > 1 ? parts[0] : (parts[0] || "project_export");
+    }
+
+    function getExtension(fileName) {
+      const lower = String(fileName || "").toLowerCase();
+      if (["dockerfile", ".dockerfile"].includes(lower)) return ".dockerfile";
+      if ([".gitignore", ".gitattributes", ".editorconfig", ".npmrc", ".nvmrc"].includes(lower)) return lower;
+      if (lower === ".env" || lower.startsWith(".env.")) return ".env";
+      const index = lower.lastIndexOf(".");
+      return index > 0 ? lower.slice(index) : "";
+    }
+
+    function getIgnoredFolderSet() {
+      if (!elements.ignoreFoldersEnabled.checked) return new Set();
+      return new Set(
+        elements.excludedFolders.value
+          .split(/\r?\n/)
+          .map((item) => item.trim().toLowerCase())
+          .filter(Boolean)
+      );
+    }
+
+    function getAllowedExtensions() {
+      return new Set(
+        elements.extensionsInput.value
+          .split(/[\n,;]+/)
+          .map((item) => item.trim().toLowerCase())
+          .filter(Boolean)
+          .map((item) => item.startsWith(".") ? item : `.${item}`)
+      );
+    }
+
+    function isExcludedPath(path, ignoredFolders) {
+      if (!ignoredFolders.size) return false;
+      const parts = normalizePath(path).split("/").filter(Boolean).map((part) => part.toLowerCase());
+      // Ignore directory segments only; the top-level project folder is never filtered.
+      return parts.slice(1, -1).some((part) => ignoredFolders.has(part));
+    }
+
+    function getCandidateFiles() {
+      const ignoredFolders = getIgnoredFolderSet();
+      const allowedExtensions = getAllowedExtensions();
+      return sourceFiles.filter((item) => {
+        if (isExcludedPath(item.path, ignoredFolders)) return false;
+        if (BINARY_EXTENSIONS.has(getExtension(item.name))) return false;
+        if (elements.fileMode.value === "extensions") {
+          return allowedExtensions.has(getExtension(item.name));
+        }
+        return true;
+      });
+    }
+
+    async function isBinaryFile(file) {
+      if (BINARY_EXTENSIONS.has(getExtension(file.name))) return true;
+      if (!file.size) return false;
+      const sample = new Uint8Array(await file.slice(0, Math.min(file.size, 8192)).arrayBuffer());
+      let controlBytes = 0;
+      for (const byte of sample) {
+        if (byte === 0) return true;
+        if (byte < 7 || (byte > 13 && byte < 32)) controlBytes++;
+      }
+      return sample.length > 0 && controlBytes / sample.length > 0.08;
+    }
+
+    function setProgress(percent, message) {
+      elements.progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+      elements.statusText.textContent = message;
+    }
+
+    function showNotice(element, message) {
+      element.textContent = message || "";
+      element.style.display = message ? "block" : "none";
+    }
+
+    function getRequestedPartCount() {
+      const value = Number.parseInt(elements.partsCount.value, 10);
+      if (!Number.isFinite(value) || value < 1) return 1;
+      return Math.min(200, value);
+    }
+
+    function getOutputCount() {
+      if (!preparedFiles.length) return 0;
+      if (elements.exportMode.value === "single") return 1;
+      return Math.min(getRequestedPartCount(), preparedFiles.length);
+    }
+
+    function updateStats() {
+      elements.statScanned.textContent = String(sourceFiles.length);
+      elements.statIncluded.textContent = String(preparedFiles.length);
+      elements.statSkipped.textContent = String(Math.max(0, sourceFiles.length - preparedFiles.length));
+      elements.statOutputs.textContent = String(getOutputCount());
+      const hasFiles = preparedFiles.length > 0 && !isExporting;
+      elements.downloadOneButton.disabled = !hasFiles;
+      elements.exportButton.disabled = !hasFiles;
+    }
+
+    function clearProject() {
+      refreshVersion++;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      sourceFiles = [];
+      preparedFiles = [];
+      traversalErrors = [];
+      rootFolderName = "project_export";
+      elements.folderInput.value = "";
+      elements.dropTitle.textContent = "Drop a folder here";
+      setProgress(0, "Choose a project folder to begin.");
+      showNotice(elements.warningBox, "");
+      showNotice(elements.errorBox, "");
+      updateStats();
+    }
+
+    function scheduleRefresh() {
+      if (!sourceFiles.length) return;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        refreshPreparedFiles();
+      }, 180);
+    }
+
+    async function refreshPreparedFiles() {
+      if (!sourceFiles.length) {
+        updateStats();
+        return;
+      }
+
+      const runId = ++refreshVersion;
+      const candidates = getCandidateFiles().sort((a, b) => a.path.localeCompare(b.path));
+      const nextPreparedFiles = [];
+      const readErrors = [...traversalErrors];
+      let binaryCount = 0;
+
+      preparedFiles = [];
+      updateStats();
+      showNotice(elements.warningBox, "");
+      showNotice(elements.errorBox, "");
+      elements.dropTitle.textContent = rootFolderName;
+
+      if (!candidates.length) {
+        setProgress(100, "No files match the current settings.");
+        if (readErrors.length) {
+          showNotice(elements.errorBox, `Could not read ${readErrors.length} item(s):\n${readErrors.join("\n")}`);
+        }
+        updateStats();
+        return;
+      }
+
+      setProgress(3, `Preparing ${candidates.length} matching files...`);
+
+      for (let index = 0; index < candidates.length; index++) {
+        if (runId !== refreshVersion) return;
+        const item = candidates[index];
+        try {
+          const binary = await isBinaryFile(item.file);
+          if (runId !== refreshVersion) return;
+          if (binary) {
+            binaryCount++;
+            continue;
+          }
+          const content = await item.file.text();
+          if (runId !== refreshVersion) return;
+          nextPreparedFiles.push({ path: item.path, name: item.name, content });
+        } catch (error) {
+          readErrors.push(`${item.path} — ${String(error)}`);
+        }
+
+        if (index % 8 === 0 || index === candidates.length - 1) {
+          const percent = 5 + Math.round(((index + 1) / candidates.length) * 90);
+          setProgress(percent, `Reading files...\n${index + 1} / ${candidates.length}`);
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+
+      if (runId !== refreshVersion) return;
+      preparedFiles = nextPreparedFiles;
+      elements.dropTitle.textContent = `${rootFolderName} · ${sourceFiles.length} files`;
+      updateStats();
+
+      if (readErrors.length) {
+        showNotice(elements.errorBox, `Could not read ${readErrors.length} item(s):\n${readErrors.join("\n")}`);
+      }
+      if (binaryCount) {
+        showNotice(elements.warningBox, `${binaryCount} binary file(s) were skipped.`);
+      }
+
+      setProgress(100, `Ready · ${preparedFiles.length} of ${sourceFiles.length} files included.`);
+    }
+
+    function fileToEntry(entry) {
+      return new Promise((resolve, reject) => entry.file(resolve, reject));
+    }
+
+    function readDirectoryEntries(reader) {
+      return new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+    }
+
+    async function traverseEntry(entry, collected, errors) {
+      const path = normalizePath(entry.fullPath || entry.name || "");
+      if (entry.isFile) {
+        try {
+          const file = await fileToEntry(entry);
+          collected.push({ file, name: file.name, path });
+        } catch (error) {
+          errors.push(`${path} — ${String(error)}`);
+        }
+        return;
+      }
+
+      if (entry.isDirectory) {
+        const reader = entry.createReader();
+        while (true) {
+          let entries;
+          try {
+            entries = await readDirectoryEntries(reader);
+          } catch (error) {
+            errors.push(`${path} — ${String(error)}`);
+            break;
+          }
+          if (!entries.length) break;
+          for (const child of entries) await traverseEntry(child, collected, errors);
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+    }
+
+    function startFolderLoad(files, folderName, errors = []) {
+      refreshVersion++;
+      sourceFiles = files;
+      traversalErrors = errors;
+      rootFolderName = folderName || "project_export";
+      preparedFiles = [];
+      elements.dropTitle.textContent = rootFolderName;
+      showNotice(elements.warningBox, "");
+      showNotice(elements.errorBox, "");
+      if (!sourceFiles.length) {
+        setProgress(100, "No files were found in this folder.");
+        updateStats();
+        if (errors.length) showNotice(elements.errorBox, errors.join("\n"));
+        return;
+      }
+      refreshPreparedFiles();
+    }
+
+    async function handleSelectedFolder(fileList) {
+      const rawFiles = Array.from(fileList || []);
+      if (!rawFiles.length) return;
+      const firstPath = rawFiles[0].webkitRelativePath || rawFiles[0].name;
+      const files = rawFiles.map((file) => ({
+        file,
+        name: file.name,
+        path: normalizePath(file.webkitRelativePath || file.name)
+      }));
+      startFolderLoad(files, getRootName(firstPath));
+    }
+
+    async function handleDroppedItems(event) {
+      event.preventDefault();
+      elements.dropZone.classList.remove("dragover");
+      const loadId = ++refreshVersion;
+      preparedFiles = [];
+      sourceFiles = [];
+      traversalErrors = [];
+      setProgress(2, "Reading folder contents...");
+      updateStats();
+
+      const collected = [];
+      const errors = [];
+      const items = Array.from(event.dataTransfer?.items || []);
+      let rootName = "project_export";
+      let handledEntries = false;
+
+      for (const item of items) {
+        if (item.kind !== "file" || typeof item.webkitGetAsEntry !== "function") continue;
+        const entry = item.webkitGetAsEntry();
+        if (!entry) continue;
+        handledEntries = true;
+        if (rootName === "project_export" && entry.name) rootName = entry.name;
+        await traverseEntry(entry, collected, errors);
+      }
+
+      if (!handledEntries || !collected.length) {
+        const fallbackFiles = Array.from(event.dataTransfer?.files || []);
+        if (fallbackFiles.length) {
+          const firstPath = fallbackFiles[0].webkitRelativePath || fallbackFiles[0].name;
+          rootName = getRootName(firstPath);
+          for (const file of fallbackFiles) {
+            collected.push({
+              file,
+              name: file.name,
+              path: normalizePath(file.webkitRelativePath || file.name)
+            });
+          }
+        }
+      }
+
+      if (loadId !== refreshVersion) return;
+      startFolderLoad(collected, rootName, errors);
+    }
+
+    function normalizeContentLineEndings(value) {
+      return String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    }
+
+    function createFileBlock(file) {
+      let block = `${SEPARATOR}\n${normalizePath(file.path)}\n${SEPARATOR}\n`;
+      block += normalizeContentLineEndings(file.content);
+      if (!block.endsWith("\n")) block += "\n";
+      return block;
+    }
+
+    function buildBlocks() {
+      return preparedFiles.map(createFileBlock);
+    }
+
+    function splitBlocksIntoParts(blocks, requestedParts) {
+      if (!blocks.length) return [];
+      const count = Math.min(Math.max(1, requestedParts), blocks.length);
+      if (count === 1) return [blocks.join("")];
+
+      const totalLength = blocks.reduce((sum, block) => sum + block.length, 0);
+      const parts = [];
+      let current = "";
+      let currentLength = 0;
+      let remainingLength = totalLength;
+
+      for (let index = 0; index < blocks.length; index++) {
+        const partsRemaining = count - parts.length;
+        const filesRemaining = blocks.length - index;
+        const targetLength = remainingLength / partsRemaining;
+        const block = blocks[index];
+
+        if (current && currentLength + block.length > targetLength && filesRemaining >= partsRemaining) {
+          parts.push(current);
+          remainingLength -= currentLength;
+          current = "";
+          currentLength = 0;
+        }
+        current += block;
+        currentLength += block.length;
+      }
+      if (current) parts.push(current);
+      return parts;
+    }
+
+    function getOutputBaseName() {
+      return sanitizeFileName(rootFolderName);
+    }
+
+    function padNumber(value, width) {
+      return String(value).padStart(width, "0");
+    }
+
+    function makeTextFilesForExport() {
+      const baseName = getOutputBaseName();
+      const blocks = buildBlocks();
+      if (elements.exportMode.value === "single") {
+        return [{ filename: `${baseName}.txt`, text: blocks.join("") }];
+      }
+
+      const parts = splitBlocksIntoParts(blocks, getRequestedPartCount());
+      const width = Math.max(2, String(parts.length).length);
+      return parts.map((text, index) => ({
+        filename: `${baseName}_${padNumber(index + 1, width)}_of_${parts.length}.txt`,
+        text
+      }));
+    }
+
+    function downloadTextFile(text, filename) {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function saveTextFilesToFolder(textFiles) {
+      if (typeof window.showDirectoryPicker === "function") {
+        const parentHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+        const outputFolderName = `${getOutputBaseName()}_txt_export`;
+        const outputFolder = await parentHandle.getDirectoryHandle(outputFolderName, { create: true });
+
+        for (let index = 0; index < textFiles.length; index++) {
+          const item = textFiles[index];
+          const fileHandle = await outputFolder.getFileHandle(item.filename, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(item.text);
+          await writable.close();
+          setProgress(Math.round(((index + 1) / textFiles.length) * 100), `Saving files...\n${index + 1} / ${textFiles.length}`);
+        }
+        setProgress(100, `Export complete · ${outputFolderName}`);
+      } else {
+        for (let index = 0; index < textFiles.length; index++) {
+          downloadTextFile(textFiles[index].text, textFiles[index].filename);
+          setProgress(Math.round(((index + 1) / textFiles.length) * 100), `Downloading files...\n${index + 1} / ${textFiles.length}`);
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        setProgress(100, `Export complete · ${textFiles.length} file(s) downloaded.`);
+      }
+    }
+
+    elements.selectButton.addEventListener("click", () => elements.folderInput.click());
+    elements.dropZone.addEventListener("click", () => elements.folderInput.click());
+    elements.dropZone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        elements.folderInput.click();
+      }
+    });
+    elements.clearButton.addEventListener("click", clearProject);
+    elements.folderInput.addEventListener("change", async (event) => {
+      await handleSelectedFolder(event.target.files);
+      event.target.value = "";
+    });
+
+    elements.dropZone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      elements.dropZone.classList.add("dragover");
+    });
+    elements.dropZone.addEventListener("dragleave", (event) => {
+      event.preventDefault();
+      elements.dropZone.classList.remove("dragover");
+    });
+    elements.dropZone.addEventListener("drop", handleDroppedItems);
+
+    elements.exportMode.addEventListener("change", () => {
+      elements.partsField.classList.toggle("hidden", elements.exportMode.value !== "parts");
+      updateStats();
+    });
+    elements.partsCount.addEventListener("input", updateStats);
+    elements.fileMode.addEventListener("change", () => {
+      elements.extensionsField.classList.toggle("hidden", elements.fileMode.value !== "extensions");
+      scheduleRefresh();
+    });
+    elements.extensionsInput.addEventListener("input", scheduleRefresh);
+    elements.ignoreFoldersEnabled.addEventListener("change", () => {
+      elements.excludedFolders.disabled = !elements.ignoreFoldersEnabled.checked;
+      scheduleRefresh();
+    });
+    elements.excludedFolders.addEventListener("input", scheduleRefresh);
+
+    elements.downloadOneButton.addEventListener("click", () => {
+      if (!preparedFiles.length || isExporting) return;
+      downloadTextFile(buildBlocks().join(""), `${getOutputBaseName()}.txt`);
+    });
+
+    elements.exportButton.addEventListener("click", async () => {
+      if (!preparedFiles.length || isExporting) return;
+      isExporting = true;
+      updateStats();
+      showNotice(elements.errorBox, "");
+      try {
+        const textFiles = makeTextFilesForExport();
+        await saveTextFilesToFolder(textFiles);
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          showNotice(elements.errorBox, `Export failed:\n${String(error)}`);
+          setProgress(0, "Export failed.");
+        }
+      } finally {
+        isExporting = false;
+        updateStats();
+      }
+    });
+
+    elements.excludedFolders.disabled = !elements.ignoreFoldersEnabled.checked;
+    elements.extensionsField.classList.toggle("hidden", elements.fileMode.value !== "extensions");
+    elements.partsField.classList.toggle("hidden", elements.exportMode.value !== "parts");
+    updateStats();
+  </script>
+</body>
+</html>
